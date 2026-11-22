@@ -11,7 +11,7 @@ import { Env, ChatMessage } from "./types";
 
 // Model ID for Workers AI model
 // https://developers.cloudflare.com/workers-ai/models/
-const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fp8";
+const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct";
 
 // Default system prompt
 const SYSTEM_PROMPT =
@@ -34,6 +34,29 @@ export default {
 		}
 
 		// API Routes
+		if (url.pathname === "/api/probe" && request.method === "POST") {
+			try {
+				const body = (await request.json()) as {
+					model: string;
+					inputs: Record<string, unknown>;
+				};
+				const out = await env.AI.run(body.model as never, body.inputs as never);
+				return new Response(
+					JSON.stringify({
+						ok: true,
+						kind: out instanceof ReadableStream ? "stream" : typeof out,
+						out: out instanceof ReadableStream ? "<stream>" : out,
+					}),
+					{ headers: { "content-type": "application/json" } },
+				);
+			} catch (error) {
+				return new Response(
+					JSON.stringify({ ok: false, error: String(error) }),
+					{ status: 500, headers: { "content-type": "application/json" } },
+				);
+			}
+		}
+
 		if (url.pathname === "/api/chat") {
 			// Handle POST requests for chat
 			if (request.method === "POST") {
