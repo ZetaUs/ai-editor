@@ -117,16 +117,7 @@ async function sendMessage() {
 					}
 					try {
 						const jsonData = JSON.parse(data);
-						// Handle both Workers AI format (response) and OpenAI format (choices[0].delta.content)
-						let content = "";
-						if (
-							typeof jsonData.response === "string" &&
-							jsonData.response.length > 0
-						) {
-							content = jsonData.response;
-						} else if (jsonData.choices?.[0]?.delta?.content) {
-							content = jsonData.choices[0].delta.content;
-						}
+						const content = extractChunkText(jsonData);
 						if (content) {
 							responseText += content;
 							flushAssistantText();
@@ -150,16 +141,7 @@ async function sendMessage() {
 				}
 				try {
 					const jsonData = JSON.parse(data);
-					// Handle both Workers AI format (response) and OpenAI format (choices[0].delta.content)
-					let content = "";
-					if (
-						typeof jsonData.response === "string" &&
-						jsonData.response.length > 0
-					) {
-						content = jsonData.response;
-					} else if (jsonData.choices?.[0]?.delta?.content) {
-						content = jsonData.choices[0].delta.content;
-					}
+					const content = extractChunkText(jsonData);
 					if (content) {
 						responseText += content;
 						flushAssistantText();
@@ -206,6 +188,25 @@ function addMessageToChat(role, content) {
 
 	// Scroll to bottom
 	chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Workers AI may serialize a token like "1" as a bare number, so non-string
+// scalars must be coerced instead of dropped.
+function extractChunkText(jsonData) {
+	if (!jsonData || typeof jsonData !== "object") {
+		if (typeof jsonData === "string") return jsonData;
+		if (typeof jsonData === "number") return String(jsonData);
+		return "";
+	}
+	const raw = jsonData.response;
+	if (typeof raw === "string" && raw.length > 0) return raw;
+	if (typeof raw === "number") return String(raw);
+	const delta = jsonData.choices?.[0]?.delta?.content;
+	if (typeof delta === "string" && delta.length > 0) return delta;
+	if (typeof delta === "number") return String(delta);
+	const text = jsonData.choices?.[0]?.text;
+	if (typeof text === "string" && text.length > 0) return text;
+	return "";
 }
 
 function consumeSseEvents(buffer) {
