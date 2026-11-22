@@ -35,5 +35,10 @@
 		"e2e:dev": "wrangler dev --config wrangler.e2e.jsonc",
 		"start": "wrangler dev",
 		"test": "vitest"
+	},
+	"allowScripts": {
+		"esbuild@0.28.1": true,
+		"workerd@1.20260811.1": true,
+		"workerd@1.20260921.1": true
 	}
 }
